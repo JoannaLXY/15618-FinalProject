@@ -1,28 +1,87 @@
+#include <cmath>
+
+#define G 6.6743e-11
+#define THETA 1.0
+
+class vector{
+    public:
+        double x, y;
+
+        vector(){
+            x = 0;
+            y = 0;
+        }
+
+        vector(double x_, double y_){
+            x = x_; 
+            y = y_;
+        }
+
+        vector add(vector v){
+            vector result;
+            result.x = x + v.x;
+            result.y = y + v.y;
+            return result;
+        }
+
+        vector sub(vector v){
+            vector result;
+            result.x = x - v.x;
+            result.y = y - v.y;
+            return result;
+        }
+
+        vector mul(double coeff){
+            vector result;
+            result.x = x * coeff;
+            result.y = y * coeff;
+            return result;
+        }
+
+        double abs(){
+            return sqrt(x * x + y * y);
+        }
+
+        void print(){
+            printf("x: %le, y: %le\n", x, y);
+        }
+};
+
+
 class Particle{
     public:
         double mass;
-        double px, py;
-        double vx, vy;
-}
+        vector position;
+        vector velocity;
+};
 
 enum class Quad{
     QuadTopLeft,
     QuadTopRight,
     QuadBottomLeft,
     QuadBottomRight
-}
+};
+
+
+
 
 class TreeNode{
     public:
-        double mass;
-        double mass_x, mass_y;
-        double center_x, center_y;
+        double mass = 0.0;
+        vector mass_center;
+        vector center;
         double radius;
-        TreeNode* children[4];
-        int num_particals;
+        TreeNode* children[4] = {};
+        int num_particles = 0;
+        Particle* particle;
 
-        Quad get_quad(const Particle& p);
+        TreeNode(double radius, double center_x, double center_y);
+        // ~TreeNode();
+
+        Quad get_quad(double px, double py);
         void build_subtree(Quad quad);
-        void add_particle(const Particle& p);
-        void update_particle(Particle& p);
-}
+        void add_particle(Particle& p);
+        vector calculate_force(Particle& p);
+
+        void print();
+};
