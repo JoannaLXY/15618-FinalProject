@@ -36,6 +36,8 @@ Goals in case the work goes more slowly ("75\%"): We finish the sequential versi
 
 As for demo, we plan to visualize our outputs which is the evolution of particle positions in video. We will also show the speedup graphs compared with sequential version.
 
+If we have time, we can construct the tree parallel using Morton Key method (https://github.com/scbrubaker02/hpc-barnes-hut)
+
 ## Platform Choice
 We use GHC for developing and simple testing. We choose GHC because GeForce RTX 2080 comes with the machines, on top of which we can build our CUDA version. We also choose PSC because it can provide many nodes, which helps up exploit the power of parallelism.
 
