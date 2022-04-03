@@ -51,5 +51,4 @@ Week of 4.18 Visualization
 Week of 4.25 Analysis, benchmarking and final report
 
 ## Reference
-[1] The barnes-hut galaxy simulator. https://beltoforion.de/en/barnes-hut-
-galaxy-simulator/. Accessed: 2020-03-21.
+[1] The barnes-hut galaxy simulator. https://beltoforion.de/en/barnes-hut-galaxy-simulator/. Accessed: 2020-03-21.
