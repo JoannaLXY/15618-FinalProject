@@ -67,8 +67,11 @@ We plan to implement three versions of barnes-hut algorithm: sequential, paralle
 
 ### The new list of the goals is:
 Continue on openMP implementation
+
 Finish CUDA implementation
+
 Finish poster
+
 Finish final report
 
 
@@ -83,7 +86,9 @@ The concerns we have so far are:
 
 ### Updated Schedule
 Week of 4.11 Finish and improve OpenMP version
+
 Week of 4.18 Finish and improve CUDA version
+
 Week of 4.25 Analysis, benchmarking and final poster & report
 
 
