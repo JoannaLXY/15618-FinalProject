@@ -52,5 +52,40 @@ Week of 4.18 Visualization
 
 Week of 4.25 Analysis, benchmarking and final report
 
+## MILESTONE
+
+### Progress
+
+We have finished the sequential version of Barnes-Hut algorithm and are still working on the parallel implementation using OpenMP. We implemented algorithm using the tree-based method according to this website (https://beltoforion.de/en/barnes-hut-galaxy-simulator/) in C++.
+
+Besides, when calculating the particle movements, we also save the status of each particle in csv file, and then use visualization code to produce an animation.
+
+
+### How we are doing with respect to the goals
+We plan to implement three versions of barnes-hut algorithm: sequential, parallel with OpenMP and parallel with CUDA. We have finished the implementation of the sequential version and are still working on the openMP version. We believe we can produce all the deliverables we have written in our proposal.
+
+
+### The new list of the goals is:
+Continue on openMP implementation
+Finish CUDA implementation
+Finish poster
+Finish final report
+
+
+### Poster session
+We plan to provide performance analysis for different parallel methods and parameters using graphs and figures during the poster session. We would also provide a live demo to produce animations of some sample n-body movements. 
+
+
+### Concerns
+The concerns we have so far are:
+1. Correctness: Currently we don't have a generic method of evaluating implementation correctness. For some very simple tests, we can calculate the result by hand, but this is very inefficient and unrealistic. We can have a rough idea from the animation, but still can not determine whether the implementation is correct or not.
+2. Parallelism: Currently we plan to distribute the force computation to different working threads. However, as the number of particles increases, the tree building phase will take on a larger portion, and we need to figure out how to speed up this part.
+
+### Updated Schedule
+Week of 4.11 Finish and improve OpenMP version
+Week of 4.18 Finish and improve CUDA version
+Week of 4.25 Analysis, benchmarking and final poster & report
+
+
 ## Reference
 [1] The barnes-hut galaxy simulator. https://beltoforion.de/en/barnes-hut-galaxy-simulator/. Accessed: 2020-03-21.
