@@ -3,7 +3,7 @@ OBJS += BHTree.o
 OBJS += main.o
 
 CXX = mpic++ -std=c++11
-CXXFLAGS = -I. -O3 #-Wall -Wextra
+CXXFLAGS = -g -I. -fopenmp -O3 -Wno-unknown-pragmas#-Wall -Wextra
 
 default: $(APP_NAME)
 
