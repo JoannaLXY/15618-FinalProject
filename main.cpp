@@ -1,7 +1,8 @@
 #include <cstdio>
 #include <unistd.h>
 #include <stdlib.h>
-
+#include <chrono>
+#include <omp.h>
 #include "BHTree.h"
 
 #define TIME_STEPSIZE 1.0
@@ -15,16 +16,21 @@ void write_csv(Particle* p, FILE* fp, int time_idx, int num_particles){
 }
 
 int main(int argc, char *argv[]){
+    using namespace std::chrono;
+    typedef std::chrono::high_resolution_clock Clock;
+    typedef std::chrono::duration<double> dsec;
+
     int opt = 0;
 
     char* filename = nullptr;
     char* outfile = nullptr;
     int num_particles;
     int num_iterations;
+    int num_of_threads;
     double universe_radius = 0.0;
 
     do {
-        opt = getopt(argc, argv, "f:o:i:");
+        opt = getopt(argc, argv, "f:o:i:n:");
         switch (opt) {
         case 'f':
             filename = optarg;
@@ -32,6 +38,10 @@ int main(int argc, char *argv[]){
 
         case 'o':
             outfile = optarg;
+            break;
+        
+        case 'n':
+            num_of_threads = atoi(optarg);
             break;
 
         // case 'p':
@@ -70,10 +80,10 @@ int main(int argc, char *argv[]){
                 &particles[count].velocity.x,  &particles[count].velocity.y, &particles[count].mass);
         count++;
     }
-    for (int i= 0; i < num_particles; i++) {
-        printf("px: %le, py: %le, vx: %le, vy: %le, mass: %le\n", 
-                particles[i].position.x, particles[i].position.y, particles[i].velocity.x, particles[i].velocity.y, particles[i].mass);
-    }
+    // for (int i= 0; i < num_particles; i++) {
+    //     printf("px: %le, py: %le, vx: %le, vy: %le, mass: %le\n", 
+    //             particles[i].position.x, particles[i].position.y, particles[i].velocity.x, particles[i].velocity.y, particles[i].mass);
+    // }
     fclose(fp);
 
     fp = fopen(outfile, "w");
@@ -81,30 +91,35 @@ int main(int argc, char *argv[]){
 
     write_csv(particles, fp, 0, num_particles);
 
+    omp_set_num_threads(num_of_threads);
+    auto compute_start = Clock::now();
+    double compute_time = 0;
+
     for (int iter = 1; iter <= num_iterations; iter++) {
-        TreeNode root = TreeNode(universe_radius, 0, 0);
+        TreeNode* root = new TreeNode(universe_radius, 0, 0);
+
         for (int i = 0; i < num_particles; i++){
-            root.add_particle(particles[i]);
+            root->add_particle(particles[i]);
         }
 
-        root.print();
-
+        // root.print();
+        #pragma omp parallel for default(shared) schedule(dynamic) 
         for (int i = 0; i < num_particles; i++){
-            vector force = root.calculate_force(particles[i]);
-            printf("force ");
-            force.print();
+            vector force = root->calculate_force(particles[i]);
+            // force.print();
             vector acc = force.mul(1.0 / particles[i].mass);
-            printf("acc ");
-            acc.print();
+            // acc.print();
             vector delta_position = particles[i].velocity.mul(TIME_STEPSIZE)
                 .add(acc.mul(0.5*TIME_STEPSIZE*TIME_STEPSIZE));
-            printf("delta_x ");
-            delta_position.print();
+            // delta_position.print();
             particles[i].position = particles[i].position.add(delta_position);
             particles[i].velocity = particles[i].velocity.add(acc.mul(TIME_STEPSIZE));
         }
-        write_csv(particles, fp, iter, num_particles);
+        // write_csv(particles, fp, iter, num_particles);
+        delete root;
     }
+    compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
+    printf("Computation Time: %lf.\n", compute_time);
 
     fclose(fp);
 

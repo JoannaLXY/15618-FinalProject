@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "BHTree.h"
-
+#include <assert.h>
 TreeNode::TreeNode(double radius_, double center_x_, double center_y_){
     radius = radius_;
     center.x = center_x_;
@@ -11,6 +11,13 @@ TreeNode::TreeNode(double radius_, double center_x_, double center_y_){
     // num_particles = 0;
 }
 
+TreeNode::~TreeNode(){
+    for(int i=0; i<4; i++){
+        if(children[i]!=nullptr){
+            delete children[i];
+        }
+    }
+}
 
 Quad TreeNode::get_quad(double px, double py){
     if (px <= center.x && py >= center.y){
@@ -43,8 +50,21 @@ void TreeNode::build_subtree(Quad quad){
     children[(int) quad] = new TreeNode(radius/2, child_x, child_y);
 }
 
-
+bool TreeNode::is_external(Particle& p){
+    if(p.position.x >(center.x + radius) || 
+       p.position.x <(center.x - radius) ||
+       p.position.y >(center.y + radius) ||
+       p.position.y <(center.y - radius) ){
+        return true;
+    }
+    return false;
+}
 void TreeNode::add_particle(Particle& p){
+    // printf("Adding particle %le %le to center %le %le radius %le, current particle num %d\n", p.position.x, p.position.y, center.x, center.y, radius, num_particles);
+    if(is_external(p)){
+        // printf("is external, return\n");
+        return;
+    }
     if (num_particles == 0){
         num_particles = 1;
         mass = p.mass;
@@ -53,14 +73,20 @@ void TreeNode::add_particle(Particle& p){
         return;
     }
     if (num_particles == 1){
+        if(p.position.x == particle->position.x && p.position.y == particle->position.y){
+            return;
+        }
         Quad current_quad = get_quad(mass_center.x, mass_center.y);
         build_subtree(current_quad);
+        assert(("assert not null", particle != nullptr));
+        assert(("assert quad not null", children[(int) current_quad] != nullptr));
         children[(int) current_quad]->add_particle(*particle);
     }
     Quad quad = get_quad(p.position.x, p.position.y);
     if (children[(int) quad] == nullptr){
         build_subtree(quad);
     }
+    assert(("assert quad not null", children[(int) quad] != nullptr));
     children[(int) quad]->add_particle(p);
 
     num_particles++;

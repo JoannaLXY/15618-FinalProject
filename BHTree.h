@@ -76,8 +76,9 @@ class TreeNode{
         Particle* particle;
 
         TreeNode(double radius, double center_x, double center_y);
-        // ~TreeNode();
+        ~TreeNode();
 
+        bool is_external(Particle& p);
         Quad get_quad(double px, double py);
         void build_subtree(Quad quad);
         void add_particle(Particle& p);
