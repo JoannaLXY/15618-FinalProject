@@ -53,6 +53,21 @@ class Particle{
         double mass;
         vector position;
         vector velocity;
+        int global_quad;
+
+    void set_global_quad(int num_threads, double radius){
+        if(num_threads == 4){
+            if (position.x <= 0 && position.y >=0){
+                global_quad = 0;
+            } else if (position.x >= 0 && position.y >= 0){
+                global_quad = 1;
+            } else if (position.x <= 0 && position.y <= 0){
+               global_quad = 2;
+            } else {
+                global_quad = 3;
+            }
+        }
+    }
 };
 
 enum class Quad{

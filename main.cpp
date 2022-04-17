@@ -25,8 +25,8 @@ int main(int argc, char *argv[]){
     char* filename = nullptr;
     char* outfile = nullptr;
     int num_particles;
-    int num_iterations;
-    int num_of_threads;
+    int num_iterations = 5;
+    int num_of_threads = 1;
     double universe_radius = 0.0;
 
     do {
@@ -97,9 +97,19 @@ int main(int argc, char *argv[]){
 
     for (int iter = 1; iter <= num_iterations; iter++) {
         TreeNode* root = new TreeNode(universe_radius, 0, 0);
-
-        for (int i = 0; i < num_particles; i++){
-            root->add_particle(particles[i]);
+        for(int i = 0; i < 4; i++){
+            root->children[i] = new TreeNode(universe_radius/2, (2*(i%2)-1)*universe_radius/2, (1-2*(i/2))*universe_radius/2);
+            printf("i%d, rad%le, x%le, y%le\n",i,  universe_radius/2, (2*(i%2)-1)*universe_radius/2,  (1-2*(i/2))*universe_radius/2);
+        }
+        #pragma omp parallel
+        {
+            int tid = omp_get_thread_num(); // Scratch vectors allocated at startup 
+            for (int i = 0; i < num_particles; i++){
+                particles[i].set_global_quad(num_of_threads, universe_radius);
+                if(tid == particles[i].global_quad){
+                    root->children[tid]->add_particle(particles[i]);
+                }
+            }
         }
 
         // root.print();
