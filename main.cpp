@@ -15,6 +15,61 @@ void write_csv(Particle* p, FILE* fp, int time_idx, int num_particles){
     }
 }
 
+void get_nodeinfo(int num_threads, int index, double& x, double& y, double& rad){
+    printf("get_nodeinfo, origin index %d\n", index);
+    while(num_threads>1){
+        num_threads/=4;
+        int i = index/num_threads;
+        index -= num_threads*i;
+        rad/=2;
+        x += (2*(i%2)-1)*rad;
+        y += (1-2*(i/2))*rad;
+    }
+    printf("rad %le, x %le, y %le\n", rad, x,  y);
+}
+
+TreeNode** create_trees(int num_threads, double global_rad){
+    TreeNode** t = new TreeNode*[num_threads];
+    for (int i = 0; i < num_threads; i++){
+        double x = 0; 
+        double y = 0;
+        double rad = global_rad;
+        get_nodeinfo(num_threads, i, x, y, rad);
+
+        t[i] = new TreeNode(rad, x, y);
+    }
+    return t;
+}
+
+TreeNode* merge_tree(TreeNode** nodes, int num_nodes){
+    while(num_nodes>1){
+        TreeNode** upper_nodes = new TreeNode*[num_nodes/4];
+        num_nodes = num_nodes/4;
+
+        for(int i = 0; i < num_nodes; i++){
+            double x = 0;
+            double y = 0;
+            double rad = 0;
+            for(int j = 0; j < 4; j++){
+                x += nodes[i*4+j]->center.x;
+                y += nodes[i*4+j]->center.y;
+                rad += nodes[i*4+j]->radius;
+            }
+            upper_nodes[i] = new TreeNode(rad/2, x/4, y/4);
+            for(int j = 0; j < 4; j++){
+                if(nodes[i*4+j]->num_particles>0){
+                    upper_nodes[i]->children[j] = nodes[i*4+j];
+                }
+            }
+        }
+        delete[] nodes;
+        nodes = upper_nodes;
+    }
+    TreeNode* root = nodes[0];
+    delete[] nodes;
+    return root;
+}
+
 int main(int argc, char *argv[]){
     using namespace std::chrono;
     typedef std::chrono::high_resolution_clock Clock;
@@ -96,23 +151,28 @@ int main(int argc, char *argv[]){
     double compute_time = 0;
 
     for (int iter = 1; iter <= num_iterations; iter++) {
-        TreeNode* root = new TreeNode(universe_radius, 0, 0);
-        for(int i = 0; i < 4; i++){
-            root->children[i] = new TreeNode(universe_radius/2, (2*(i%2)-1)*universe_radius/2, (1-2*(i/2))*universe_radius/2);
-            printf("i%d, rad%le, x%le, y%le\n",i,  universe_radius/2, (2*(i%2)-1)*universe_radius/2,  (1-2*(i/2))*universe_radius/2);
-        }
+        TreeNode** nodes = create_trees(num_of_threads, universe_radius);
+
         #pragma omp parallel
         {
             int tid = omp_get_thread_num(); // Scratch vectors allocated at startup 
             for (int i = 0; i < num_particles; i++){
-                particles[i].set_global_quad(num_of_threads, universe_radius);
-                if(tid == particles[i].global_quad){
-                    root->children[tid]->add_particle(particles[i]);
+                // particles[i].set_global_quad(num_of_threads, universe_radius);
+                // printf("add p %d", i);
+                fflush(stdout);
+                if(!nodes[tid]->is_external(particles[i])){
+                    nodes[tid]->add_particle(particles[i]);
                 }
             }
         }
 
-        // root.print();
+        int tid = omp_get_thread_num();
+        TreeNode* root;
+        if (tid == 0) {
+            root = merge_tree(nodes, num_of_threads);
+        }
+        // root->print();
+
         #pragma omp parallel for default(shared) schedule(dynamic) 
         for (int i = 0; i < num_particles; i++){
             vector force = root->calculate_force(particles[i]);

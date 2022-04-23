@@ -67,6 +67,7 @@ class Particle{
                 global_quad = 3;
             }
         }
+        
     }
 };
 
