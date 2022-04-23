@@ -94,15 +94,20 @@ int main(int argc, char *argv[]){
     omp_set_num_threads(num_of_threads);
     auto compute_start = Clock::now();
     double compute_time = 0;
+    double tree_time = 0;
+    double force_time = 0;
 
     for (int iter = 1; iter <= num_iterations; iter++) {
+        auto tree_start = Clock::now();
         TreeNode* root = new TreeNode(universe_radius, 0, 0);
 
         for (int i = 0; i < num_particles; i++){
             root->add_particle(particles[i]);
         }
 
-        // root.print();
+        tree_time += duration_cast<dsec>(Clock::now() - tree_start).count();
+        // root->print();
+        auto force_start = Clock::now();
         #pragma omp parallel for default(shared) schedule(dynamic) 
         for (int i = 0; i < num_particles; i++){
             vector force = root->calculate_force(particles[i]);
@@ -115,12 +120,14 @@ int main(int argc, char *argv[]){
             particles[i].position = particles[i].position.add(delta_position);
             particles[i].velocity = particles[i].velocity.add(acc.mul(TIME_STEPSIZE));
         }
+        force_time += duration_cast<dsec>(Clock::now() - force_start).count();
         // write_csv(particles, fp, iter, num_particles);
         delete root;
     }
     compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
     printf("Computation Time: %lf.\n", compute_time);
-
+    printf("Tree Time: %lf.\n", tree_time);
+    printf("Force Time: %lf.\n", force_time);
     fclose(fp);
 
     free(particles);
