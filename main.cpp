@@ -16,7 +16,7 @@ void write_csv(Particle* p, FILE* fp, int time_idx, int num_particles){
 }
 
 void get_nodeinfo(int num_threads, int index, double& x, double& y, double& rad){
-    printf("get_nodeinfo, origin index %d\n", index);
+    // printf("get_nodeinfo, origin index %d\n", index);
     while(num_threads>1){
         num_threads/=4;
         int i = index/num_threads;
@@ -25,7 +25,7 @@ void get_nodeinfo(int num_threads, int index, double& x, double& y, double& rad)
         x += (2*(i%2)-1)*rad;
         y += (1-2*(i/2))*rad;
     }
-    printf("rad %le, x %le, y %le\n", rad, x,  y);
+    // printf("rad %le, x %le, y %le\n", rad, x,  y);
 }
 
 TreeNode** create_trees(int num_threads, double global_rad){
@@ -149,8 +149,12 @@ int main(int argc, char *argv[]){
     omp_set_num_threads(num_of_threads);
     auto compute_start = Clock::now();
     double compute_time = 0;
+    double tree_time = 0;
+    double force_time = 0;
 
     for (int iter = 1; iter <= num_iterations; iter++) {
+        auto tree_start = Clock::now();
+
         TreeNode** nodes = create_trees(num_of_threads, universe_radius);
 
         #pragma omp parallel
@@ -171,7 +175,10 @@ int main(int argc, char *argv[]){
         if (tid == 0) {
             root = merge_tree(nodes, num_of_threads);
         }
+        tree_time += duration_cast<dsec>(Clock::now() - tree_start).count();
+
         // root->print();
+        auto force_start = Clock::now();
 
         #pragma omp parallel for default(shared) schedule(dynamic) 
         for (int i = 0; i < num_particles; i++){
@@ -187,9 +194,13 @@ int main(int argc, char *argv[]){
         }
         // write_csv(particles, fp, iter, num_particles);
         delete root;
+        force_time += duration_cast<dsec>(Clock::now() - force_start).count();
+        
     }
     compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
     printf("Computation Time: %lf.\n", compute_time);
+    printf("Tree Time: %lf.\n", tree_time);
+    printf("Force Time: %lf.\n", force_time);
 
     fclose(fp);
 
