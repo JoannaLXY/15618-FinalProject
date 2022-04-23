@@ -161,10 +161,8 @@ int main(int argc, char *argv[]){
         {
             int tid = omp_get_thread_num(); // Scratch vectors allocated at startup 
             for (int i = 0; i < num_particles; i++){
-                // particles[i].set_global_quad(num_of_threads, universe_radius);
-                // printf("add p %d", i);
-                fflush(stdout);
-                if(!nodes[tid]->is_external(particles[i])){
+                particles[i].set_global_quad(num_of_threads, universe_radius);
+                if(tid == particles[i].global_quad){
                     nodes[tid]->add_particle(particles[i]);
                 }
             }

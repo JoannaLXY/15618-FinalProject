@@ -56,18 +56,31 @@ class Particle{
         int global_quad;
 
     void set_global_quad(int num_threads, double radius){
-        if(num_threads == 4){
-            if (position.x <= 0 && position.y >=0){
-                global_quad = 0;
-            } else if (position.x >= 0 && position.y >= 0){
-                global_quad = 1;
-            } else if (position.x <= 0 && position.y <= 0){
-               global_quad = 2;
+        int index = 0;
+        double x = 0;
+        double y = 0;
+        while(num_threads>1){
+            num_threads /= 4;
+            radius /= 2;
+            if (position.x <= x && position.y >=y){
+                index += 0;
+                x -= radius;
+                y += radius;
+            } else if (position.x >= x && position.y >= y){
+                index += num_threads;
+                x += radius;
+                y += radius;
+            } else if (position.x <= x && position.y <= y){
+               index += 2*num_threads;
+                x -= radius;
+                y -= radius;
             } else {
-                global_quad = 3;
+                index += 3*num_threads;
+                x += radius;
+                y -= radius;
             }
         }
-        
+        global_quad = index;
     }
 };
 
