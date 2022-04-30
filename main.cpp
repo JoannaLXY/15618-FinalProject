@@ -4,8 +4,10 @@
 #include <chrono>
 #include <omp.h>
 #include "BHTree.h"
+#include "mpi.h"
 
 #define TIME_STEPSIZE 1.0
+#define min(x, y) (((x) < (y)) ? (x) : (y))
 
 void write_csv(Particle* p, FILE* fp, int time_idx, int num_particles){
     for (int i = 0; i < num_particles; i++){
@@ -81,11 +83,16 @@ int main(int argc, char *argv[]){
     char* outfile = nullptr;
     int num_particles;
     int num_iterations = 5;
-    int num_of_threads = 1;
     double universe_radius = 0.0;
 
+    int procID;
+    int nproc;
+
+    // Initialize MPI
+    MPI_Init(&argc, &argv);
+
     do {
-        opt = getopt(argc, argv, "f:o:i:n:");
+        opt = getopt(argc, argv, "f:o:i:");
         switch (opt) {
         case 'f':
             filename = optarg;
@@ -93,10 +100,6 @@ int main(int argc, char *argv[]){
 
         case 'o':
             outfile = optarg;
-            break;
-        
-        case 'n':
-            num_of_threads = atoi(optarg);
             break;
 
         // case 'p':
@@ -117,6 +120,12 @@ int main(int argc, char *argv[]){
 
     printf("%s\n", filename);
 
+    // Get process rank
+    MPI_Comm_rank(MPI_COMM_WORLD, &procID);
+
+    // Get total number of processes specificed at start of run
+    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+
     FILE* fp = fopen(filename,"r");
     fscanf(fp, "%d\n", &num_particles);
     printf("num of particles: %d\n", num_particles);
@@ -124,7 +133,10 @@ int main(int argc, char *argv[]){
     fscanf(fp, "%lf\n", & universe_radius);
     printf("universe radius: %le\n", universe_radius);
 
-    Particle* particles = (Particle*) calloc(num_particles, sizeof(Particle));
+    int batch = (num_particles+nproc-1)/nproc;
+    Particle* particles = (Particle*) calloc(batch*nproc, sizeof(Particle));
+    double* send_buffer = (double*) calloc(batch*4, sizeof(double));
+    double* recv_buffer = (double*) calloc(batch*4*nproc, sizeof(double));
 
     char* line;
     size_t len = 0;
@@ -146,44 +158,28 @@ int main(int argc, char *argv[]){
 
     write_csv(particles, fp, 0, num_particles);
 
-    omp_set_num_threads(num_of_threads);
-    auto compute_start = Clock::now();
+    auto compute_start = MPI_Wtime();
     double compute_time = 0;
     double tree_time = 0;
     double force_time = 0;
 
     for (int iter = 1; iter <= num_iterations; iter++) {
-        auto tree_start = Clock::now();
+        auto tree_start = MPI_Wtime();
 
-        TreeNode** nodes = create_trees(num_of_threads, universe_radius);
+        TreeNode* root = new TreeNode(universe_radius, 0, 0);
 
-        #pragma omp parallel for default(shared) schedule(dynamic) 
         for (int i = 0; i < num_particles; i++){
-            particles[i].set_global_quad(num_of_threads, universe_radius);
+            root->add_particle(particles[i]);
         }
-
-        #pragma omp parallel
-        {
-            int tid = omp_get_thread_num(); // Scratch vectors allocated at startup 
-            for (int i = 0; i < num_particles; i++){
-                if(tid == particles[i].global_quad){
-                    nodes[tid]->add_particle(particles[i]);
-                }
-            }
-        }
-
-        int tid = omp_get_thread_num();
-        TreeNode* root;
-        if (tid == 0) {
-            root = merge_tree(nodes, num_of_threads);
-        }
-        tree_time += duration_cast<dsec>(Clock::now() - tree_start).count();
+        tree_time += MPI_Wtime() - tree_start;
 
         // root->print();
-        auto force_start = Clock::now();
+        auto force_start = MPI_Wtime();
 
-        #pragma omp parallel for default(shared) schedule(dynamic) 
-        for (int i = 0; i < num_particles; i++){
+        
+        int start = batch*procID;
+        int end = min(start+batch, num_particles); 
+        for (int i = start; i < end; i++){
             vector force = root->calculate_force(particles[i]);
             // force.print();
             vector acc = force.mul(1.0 / particles[i].mass);
@@ -193,20 +189,41 @@ int main(int argc, char *argv[]){
             // delta_position.print();
             particles[i].position = particles[i].position.add(delta_position);
             particles[i].velocity = particles[i].velocity.add(acc.mul(TIME_STEPSIZE));
+
+            send_buffer[4*(i-start)] = particles[i].position.x;
+            send_buffer[4*(i-start)+1] = particles[i].position.y;
+            send_buffer[4*(i-start)+2] = particles[i].velocity.x;
+            send_buffer[4*(i-start)+3] = particles[i].velocity.y;
         }
         // write_csv(particles, fp, iter, num_particles);
+        MPI_Allgather(send_buffer,
+                  batch*4,
+                  MPI_DOUBLE,
+                  recv_buffer,
+                  batch*4,
+                  MPI_DOUBLE,
+                  MPI_COMM_WORLD);
+        
+        for(int i = 0; i < num_particles; i++){
+            particles[i].position.x = recv_buffer[4*i];
+            particles[i].position.y = recv_buffer[4*i+1];
+            particles[i].velocity.x = recv_buffer[4*i+2];
+            particles[i].velocity.y = recv_buffer[4*i+3];
+        }
         delete root;
-        force_time += duration_cast<dsec>(Clock::now() - force_start).count();
+        force_time += MPI_Wtime() - force_start;
         
     }
-    compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
+    compute_time += MPI_Wtime() - compute_start;
+    fclose(fp);
+    free(particles);
+    free(send_buffer);
+    free(recv_buffer);
+    // Cleanup
+    MPI_Finalize();
+
     printf("Computation Time: %lf.\n", compute_time);
     printf("Tree Time: %lf.\n", tree_time);
     printf("Force Time: %lf.\n", force_time);
-
-    fclose(fp);
-
-    free(particles);
-
     return 0;
 }
