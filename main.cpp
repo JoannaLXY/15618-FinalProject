@@ -7,8 +7,12 @@
 
 #define TIME_STEPSIZE 1.0
 
-void write_csv(Particle* p, FILE* fp, int time_idx, int num_particles){
+void write_csv(TreeNode* root, Particle* p, FILE* fp, int time_idx, int num_particles){
     for (int i = 0; i < num_particles; i++){
+        if(root->is_external(p[i])){
+            printf("id: %d is external\n", i);
+            continue;
+        }
         fprintf(fp, "%d,%d,%lf,%lf,%lf,%lf,%lf,%lf\n",
                 time_idx, i, time_idx*TIME_STEPSIZE, p[i].position.x, p[i].position.y,
                 p[i].velocity.x, p[i].velocity.y, p[i].mass);
@@ -88,8 +92,9 @@ int main(int argc, char *argv[]){
 
     fp = fopen(outfile, "w");
     fprintf(fp, "time_idx,body_idx,t,x,y,vx,vy,m\n");
-
-    write_csv(particles, fp, 0, num_particles);
+        
+    TreeNode* root = new TreeNode(universe_radius, 0, 0);
+    write_csv(root, particles, fp, 0, num_particles);
 
     omp_set_num_threads(num_of_threads);
     auto compute_start = Clock::now();
@@ -99,8 +104,8 @@ int main(int argc, char *argv[]){
 
     for (int iter = 1; iter <= num_iterations; iter++) {
         auto tree_start = Clock::now();
-        TreeNode* root = new TreeNode(universe_radius, 0, 0);
-
+        root = new TreeNode(universe_radius, 0, 0);
+        
         for (int i = 0; i < num_particles; i++){
             root->add_particle(particles[i]);
         }
@@ -121,11 +126,11 @@ int main(int argc, char *argv[]){
             particles[i].velocity = particles[i].velocity.add(acc.mul(TIME_STEPSIZE));
         }
         force_time += duration_cast<dsec>(Clock::now() - force_start).count();
-        // write_csv(particles, fp, iter, num_particles);
+        write_csv(root, particles, fp, iter, num_particles);
         delete root;
     }
     compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
-    printf("Computation Time: %lf.\n", compute_time);
+    printf("Computation Time: %lf.\n", tree_time + force_time);
     printf("Tree Time: %lf.\n", tree_time);
     printf("Force Time: %lf.\n", force_time);
     fclose(fp);
