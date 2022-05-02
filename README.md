@@ -30,7 +30,7 @@ We will use GHC and PSC machines to develop our project. We will start from scra
 
 PLAN TO ACHIEVE ("100\%"): We plan to finish implementing the sequential version and OpenMP version of the algorithm. Also, we will compare the performance between sequential and parallel version.
 
-Extra goal or two ("125\%"): Besides the sequential and OpenMP version, we could implement the CUDA version if we are ahead of the schedule. 
+Extra goal or two ("125\%"): Besides the sequential and OpenMP version, we could implement the MPI version if we are ahead of the schedule. 
 
 Goals in case the work goes more slowly ("75\%"): We finish the sequential version and implement a workable parallel solution which may not speed up as much as expected. 
 
@@ -39,7 +39,7 @@ As for demo, we plan to visualize our outputs which is the evolution of particle
 If we have time, we can construct the tree parallel using Morton Key method (https://github.com/scbrubaker02/hpc-barnes-hut)
 
 ## Platform Choice
-We use GHC for developing and simple testing. We choose GHC because GeForce RTX 2080 comes with the machines, on top of which we can build our CUDA version. We also choose PSC because it can provide many nodes, which helps up exploit the power of parallelism.
+We use GHC for developing and simple testing. We choose GHC because GeForce RTX 2080 comes with the machines, on top of which we can build our multi-thread version. We also choose PSC because it can provide many nodes, which helps up exploit the power of parallelism.
 
 ## Schedule
 Week of 3.28 Finish sequential version 
@@ -62,13 +62,13 @@ Besides, when calculating the particle movements, we also save the status of eac
 
 
 ### How we are doing with respect to the goals
-We plan to implement three versions of barnes-hut algorithm: sequential, parallel with OpenMP and parallel with CUDA. We have finished the implementation of the sequential version and are still working on the openMP version. We believe we can produce all the deliverables we have written in our proposal.
+We plan to implement three versions of barnes-hut algorithm: sequential, parallel with OpenMP and parallel with MPI. We have finished the implementation of the sequential version and are still working on the openMP version. We believe we can produce all the deliverables we have written in our proposal.
 
 
 ### The new list of the goals is:
 Continue on openMP implementation
 
-Finish CUDA implementation
+Finish MPI implementation
 
 Finish poster
 
@@ -87,7 +87,7 @@ The concerns we have so far are:
 ### Updated Schedule
 Week of 4.11 Finish and improve OpenMP version
 
-Week of 4.18 Finish and improve CUDA version
+Week of 4.18 Finish and improve MPI version
 
 Week of 4.25 Analysis, benchmarking and final poster & report
 
